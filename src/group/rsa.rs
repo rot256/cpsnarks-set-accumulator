@@ -3,9 +3,10 @@ use super::{ElemFrom, ElemToBytes, Group, UnknownOrderGroup};
 use crate::util::{int, TypeRep};
 use rug::{rand::MutRandState, Integer};
 use std::str::FromStr;
+use serde::{Deserialize, Serialize};
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// RSA-2048 group implementation. Modulus taken from
 /// [here](https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048). **Note**: If you want to use
 /// `Rsa2048` outside the context of this crate, be advised that it treats `x` and `-x` as the same
@@ -28,7 +29,7 @@ lazy_static! {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// An RSA 2048 group element, directly wrapping a GMP integer from the `rug` crate.
 pub struct Rsa2048Elem(Integer);
 
