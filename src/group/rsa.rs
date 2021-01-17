@@ -4,6 +4,8 @@ use crate::util::{int, TypeRep};
 use rug::{rand::MutRandState, Integer};
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use rug_binserial::*;
+use proofsize_derive::*;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -29,7 +31,7 @@ lazy_static! {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, ProofSize)]
 /// An RSA 2048 group element, directly wrapping a GMP integer from the `rug` crate.
 pub struct Rsa2048Elem(Integer);
 
