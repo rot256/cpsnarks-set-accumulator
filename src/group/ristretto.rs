@@ -9,6 +9,9 @@ use rug::ops::Pow;
 use rug::Integer;
 use std::hash::{Hash, Hasher};
 
+use rug_binserial::*;
+use proofsize_derive::*;
+
 #[allow(clippy::module_name_repetitions)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 /// Ristretto group implementation (based on the `curve25519-dalek` crate).
@@ -34,7 +37,7 @@ impl Ristretto {
 //
 // It may make sense to fork `curve25519-dalek` to add the `Hash` impl. Then we won't need to wrap.
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, ProofSize)]
 /// A Ristretto group element, directly wrapping a Ristretto point.
 pub struct RistrettoElem(RistrettoPoint);
 
@@ -90,8 +93,15 @@ mod tests {
   use curve25519_dalek::constants;
 
   #[test]
-  fn test_inv() {
+  fn test_prf_sz() {
     let bp = RistrettoElem(constants::RISTRETTO_BASEPOINT_POINT);
+    let sz_ = bp.proof_size();
+
+  }
+
+  #[test]
+  fn test_inv() {
+    let bp = RistrettoElem(constants::RISTRETTO_BASEPOINT_POINT)
     let bp_inv = Ristretto::inv(&bp);
     assert!(Ristretto::op(&bp, &bp_inv) == Ristretto::id());
     assert_ne!(bp, bp_inv);

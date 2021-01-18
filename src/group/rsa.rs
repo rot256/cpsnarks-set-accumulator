@@ -118,6 +118,12 @@ mod tests {
     }
 
     #[test]
+    fn test_prf_sz() {
+      let a = Rsa2048::op(&Rsa2048::elem(2), &Rsa2048::elem(3));
+      let sz_ = a.proof_size();
+    }
+
+    #[test]
     fn test_op() {
         let a = Rsa2048::op(&Rsa2048::elem(2), &Rsa2048::elem(3));
         assert!(a == Rsa2048::elem(6));
