@@ -1,9 +1,7 @@
-# RSA accumulators
+# Algebraic Accumulators in Groups of Unknown Order
 
 Modified version of [accumulator](https://github.com/cambrian/accumulator) that allows accumulating without hash-to-prime and exposes additional info needed for the protocols in [CPSNARKs-Set](https://github.com/matteocam/cpsnarks-set).
 
-Cryptographic accumulators in Rust, implemented over a generic group interface. Batteries (RSA and
-class group implementations) included!
 
 ## Installation
 ```toml
