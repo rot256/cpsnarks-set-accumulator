@@ -519,7 +519,7 @@ mod tests {
                 b: b.into(),
                 c: c.into()
             },
-            reduced_ground_truth.clone()
+            reduced_ground_truth
         );
 
         let reduced_ground_truth_ = reduced_ground_truth.clone();

@@ -94,7 +94,6 @@
 //! Class groups are currently not performant for any meaningful use case. A pull request is in the
 //! works to drastically improve their performance using techniques learned from the
 //! [Chia VDF competition](https://github.com/Chia-Network/vdf-competition).
-#![allow(clippy::unknown_clippy_lints)]
 #![allow(clippy::many_single_char_names)]
 #![allow(clippy::empty_enum)]
 #![warn(missing_docs)]

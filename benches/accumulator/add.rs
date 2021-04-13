@@ -30,6 +30,7 @@ fn bench_iterative_add(elems: &[Integer]) {
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn init_acc<G: UnknownOrderGroup>() -> (
     Accumulator<G, Integer, AccumulatorWithHashToPrime>,
     MembershipProof<G, Integer, AccumulatorWithHashToPrime>,
@@ -42,7 +43,7 @@ fn init_acc<G: UnknownOrderGroup>() -> (
         elems.push(prime);
     }
     let acc = Accumulator::<G, Integer, AccumulatorWithHashToPrime>::empty();
-    let (mut acc, mut proof) = acc.clone().add_with_proof(&elems);
+    let (mut acc, mut proof) = acc.add_with_proof(&elems);
     for _ in 0..100 {
         elems = vec![];
         for _ in 0..100 {
