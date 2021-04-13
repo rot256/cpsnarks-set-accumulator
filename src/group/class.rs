@@ -6,10 +6,11 @@ use super::{ElemFrom, ElemToBytes, Group, UnknownOrderGroup};
 use crate::util;
 use crate::util::{int, TypeRep};
 use rug::{rand::MutRandState, Assign, Integer};
+use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
-use serde::{Deserialize, Serialize};
 
+use rug_binserial::Integer as BinInteger;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -40,9 +41,9 @@ lazy_static! {
 /// A class group element, which wraps three GMP integers from the `rug` crate. You should never
 /// need to construct a class group element yourself.
 pub struct ClassElem {
-    a: Integer,
-    b: Integer,
-    c: Integer,
+    a: BinInteger,
+    b: BinInteger,
+    c: BinInteger,
 }
 
 // `ClassElem` and `ClassGroup` ops based on Chia's fantastic doc explaining applied class groups:
@@ -84,15 +85,18 @@ impl ClassGroup {
     pub fn square(x: &ClassElem) -> ClassElem {
         // Solve `bk = c mod a` for `k`, represented by `mu`, `v` and any integer `n` s.t.
         // `k = mu + v * n`.
-        let (mu, _) = util::solve_linear_congruence(&x.b, &x.c, &x.a).unwrap();
+        let (mu, _) =
+            util::solve_linear_congruence(x.b.as_ref(), x.c.as_ref(), x.a.as_ref()).unwrap();
 
         // A = a^2
         // B = b - 2a * mu
         // tmp = (b * mu) / a
         // C = mu^2 - tmp
-        let a = int(x.a.square_ref());
-        let b = &x.b - int(2 * &x.a) * &mu;
-        let (tmp, _) = <(Integer, Integer)>::from(int((&x.b * &mu) - &x.c).div_rem_floor_ref(&x.a));
+        let a = int(x.a.as_ref().square_ref());
+        let b = x.b.as_ref() - int(2 * x.a.as_ref()) * &mu;
+        let (tmp, _) = <(Integer, Integer)>::from(
+            int((x.b.as_ref() * &mu) - x.c.as_ref()).div_rem_floor_ref(x.a.as_ref()),
+        );
         let c = mu.square() - tmp;
 
         Self::elem((a, b, c))
@@ -130,9 +134,9 @@ impl Group for ClassGroup {
         // g = (b1 + b2) / 2
         // h = (b2 - b1) / 2
         // w = gcd(a1, a2, g)
-        let (g, _) = (int(&x.b) + &y.b).div_rem_floor(int(2));
-        let (h, _) = (&y.b - int(&x.b)).div_rem_floor(int(2));
-        let w = int(x.a.gcd_ref(&y.a)).gcd(&g);
+        let (g, _) = (int(x.b.as_ref()) + y.b.as_ref()).div_rem_floor(int(2));
+        let (h, _) = (y.b.as_ref() - int(x.b.as_ref())).div_rem_floor(int(2));
+        let w = int(x.a.as_ref().gcd_ref(y.a.as_ref())).gcd(&g);
 
         // j = w
         // s = a1 / w
@@ -140,8 +144,8 @@ impl Group for ClassGroup {
         // u = g / ww
         // r = 0
         let j = int(&w);
-        let (s, _) = <(Integer, Integer)>::from(x.a.div_rem_floor_ref(&w));
-        let (t, _) = <(Integer, Integer)>::from(y.a.div_rem_floor_ref(&w));
+        let (s, _) = <(Integer, Integer)>::from(x.a.as_ref().div_rem_floor_ref(&w));
+        let (t, _) = <(Integer, Integer)>::from(y.a.as_ref().div_rem_floor_ref(&w));
         let (u, _) = g.div_rem_floor(w);
 
         // a = tu
@@ -149,7 +153,7 @@ impl Group for ClassGroup {
         // m = st
         // Solve linear congruence `(tu)k = hu + sc mod st` or `ak = b mod m` for solutions `k`.
         let a = int(&t * &u);
-        let b = int(&h * &u) + (&s * &x.c);
+        let b = int(&h * &u) + (&s * x.c.as_ref());
         let mut m = int(&s * &t);
         let (mu, v) = util::solve_linear_congruence(&a, &b, &m).unwrap();
 
@@ -167,7 +171,7 @@ impl Group for ClassGroup {
         // m = (tuk - hu - cs) / st
         let k = &mu + int(&v * &lambda);
         let (l, _) = <(Integer, Integer)>::from((int(&k * &t) - &h).div_rem_floor_ref(&s));
-        let (m, _) = (int(&t * &u) * &k - &h * &u - &x.c * &s).div_rem_floor(int(&s * &t));
+        let (m, _) = (int(&t * &u) * &k - &h * &u - x.c.as_ref() * &s).div_rem_floor(int(&s * &t));
 
         // A = st
         // B = ju - kt + ls
@@ -185,15 +189,19 @@ impl Group for ClassGroup {
 
         // c = (b * b - d) / 4a
         let (c, _) = int(1 - d).div_rem_floor(int(4));
-        ClassElem { a, b, c }
+        ClassElem {
+            a: a.into(),
+            b: b.into(),
+            c: c.into(),
+        }
     }
 
     // Constructs the inverse directly instead of using `Self::Elem()`.
     fn inv_(_: &Integer, x: &ClassElem) -> ClassElem {
         ClassElem {
-            a: int(&x.a),
-            b: int(-(&x.b)),
-            c: int(&x.c),
+            a: int(x.a.as_ref()).into(),
+            b: int(-(x.b.as_ref())).into(),
+            c: int(x.c.as_ref()).into(),
         }
     }
 
@@ -223,9 +231,10 @@ impl ElemToBytes for ClassGroup {
         let mut all_bytes = vec![];
         for e in &[val.a.clone(), val.b.clone(), val.c.clone()] {
             let num = e;
-            let digits = num.significant_digits::<u8>();
+            let digits = num.as_ref().significant_digits::<u8>();
             let mut bytes = vec![0u8; digits];
-            num.write_digits(&mut bytes, rug::integer::Order::MsfBe);
+            num.as_ref()
+                .write_digits(&mut bytes, rug::integer::Order::MsfBe);
             all_bytes.extend_from_slice(&bytes);
         }
         all_bytes
@@ -240,7 +249,11 @@ impl UnknownOrderGroup for ClassGroup {
         let a = int(2);
         let b = int(1);
         let c = int(1 - d) / int(8);
-        ClassElem { a, b, c }
+        ClassElem {
+            a: a.into(),
+            b: b.into(),
+            c: c.into(),
+        }
     }
 
     fn unknown_possibly_random_order_elem_<R: MutRandState>(_: &Self::Rep, _: &mut R) -> ClassElem {
@@ -249,7 +262,7 @@ impl UnknownOrderGroup for ClassGroup {
 
     // based on https://kconrad.math.uconn.edu/blurbs/gradnumthy/classgpex.pdf
     fn order_upper_bound_(_: &Integer) -> Integer {
-        Integer::from(CLASS_GROUP_DISCRIMINANT.clone().abs().sqrt() + 1)
+        CLASS_GROUP_DISCRIMINANT.clone().abs().sqrt() + 1
     }
 
     fn rsa_modulus_(_: &Integer) -> Result<Integer, Integer> {
@@ -289,7 +302,11 @@ where
         // an invalid `ElemFrom` here should signal a severe internal error.
         assert!(Self::validate(&a, &b, &c));
 
-        ClassElem { a, b, c }
+        ClassElem {
+            a: a.into(),
+            b: b.into(),
+            c: c.into(),
+        }
     }
 }
 
@@ -303,9 +320,9 @@ mod tests {
     // Makes a class elem tuple but does not reduce.
     fn construct_raw_elem_from_strings(a: &str, b: &str, c: &str) -> ClassElem {
         ClassElem {
-            a: Integer::from_str(a).unwrap(),
-            b: Integer::from_str(b).unwrap(),
-            c: Integer::from_str(c).unwrap(),
+            a: Integer::from_str(a).unwrap().into(),
+            b: Integer::from_str(b).unwrap().into(),
+            c: Integer::from_str(c).unwrap().into(),
         }
     }
 
@@ -493,16 +510,32 @@ mod tests {
       1564478239095738726823372184204"
     );
 
-        let (a, b, c) = ClassGroup::reduce(to_reduce.a, to_reduce.b, to_reduce.c);
-        assert_eq!(ClassElem { a, b, c }, reduced_ground_truth.clone());
+        let (a, b, c) =
+            ClassGroup::reduce(to_reduce.a.into(), to_reduce.b.into(), to_reduce.c.into());
+
+        assert_eq!(
+            ClassElem {
+                a: a.into(),
+                b: b.into(),
+                c: c.into()
+            },
+            reduced_ground_truth.clone()
+        );
 
         let reduced_ground_truth_ = reduced_ground_truth.clone();
         let (a, b, c) = ClassGroup::reduce(
-            reduced_ground_truth_.a,
-            reduced_ground_truth_.b,
-            reduced_ground_truth_.c,
+            reduced_ground_truth_.a.into(),
+            reduced_ground_truth_.b.into(),
+            reduced_ground_truth_.c.into(),
         );
-        assert_eq!(ClassElem { a, b, c }, reduced_ground_truth);
+        assert_eq!(
+            ClassElem {
+                a: a.into(),
+                b: b.into(),
+                c: c.into()
+            },
+            reduced_ground_truth
+        );
     }
 
     #[test]
@@ -533,8 +566,19 @@ mod tests {
        9945629057462766047140854869124473221137588347335081555186814036",
     );
 
-        let (a, b, c) = ClassGroup::normalize(unnormalized.a, unnormalized.b, unnormalized.c);
-        assert_eq!(normalized_ground_truth, ClassElem { a, b, c });
+        let (a, b, c) = ClassGroup::normalize(
+            unnormalized.a.into(),
+            unnormalized.b.into(),
+            unnormalized.c.into(),
+        );
+        assert_eq!(
+            normalized_ground_truth,
+            ClassElem {
+                a: a.into(),
+                b: b.into(),
+                c: c.into()
+            }
+        );
     }
 
     #[test]
@@ -543,7 +587,7 @@ mod tests {
     fn test_discriminant_basic() {
         let g = ClassGroup::unknown_order_elem();
         assert_eq!(
-            ClassGroup::discriminant(&g.a, &g.b, &g.c),
+            ClassGroup::discriminant(g.a.as_ref(), g.b.as_ref(), g.c.as_ref()),
             *ClassGroup::rep()
         );
     }
@@ -557,11 +601,31 @@ mod tests {
         let g3 = ClassGroup::op(&id, &g2);
         let g3_inv = ClassGroup::inv(&g3);
 
-        assert!(ClassGroup::validate(&id.a, &id.b, &id.c));
-        assert!(ClassGroup::validate(&g1.a, &g1.b, &g1.c));
-        assert!(ClassGroup::validate(&g2.a, &g2.b, &g2.c));
-        assert!(ClassGroup::validate(&g3.a, &g3.b, &g3.c));
-        assert!(ClassGroup::validate(&g3_inv.a, &g3_inv.b, &g3_inv.c));
+        assert!(ClassGroup::validate(
+            id.a.as_ref(),
+            id.b.as_ref(),
+            id.c.as_ref()
+        ));
+        assert!(ClassGroup::validate(
+            g1.a.as_ref(),
+            g1.b.as_ref(),
+            g1.c.as_ref()
+        ));
+        assert!(ClassGroup::validate(
+            g2.a.as_ref(),
+            g2.b.as_ref(),
+            g2.c.as_ref()
+        ));
+        assert!(ClassGroup::validate(
+            g3.a.as_ref(),
+            g3.b.as_ref(),
+            g3.c.as_ref()
+        ));
+        assert!(ClassGroup::validate(
+            g3_inv.a.as_ref(),
+            g3_inv.b.as_ref(),
+            g3_inv.c.as_ref()
+        ));
     }
 
     #[test]
@@ -656,27 +720,43 @@ mod tests {
         let mut g_star = ClassGroup::id();
         for i in 1..=1000 {
             g = ClassGroup::op(&g_anchor, &g);
-            assert!(ClassGroup::validate(&g.a, &g.b, &g.c));
+            assert!(ClassGroup::validate(
+                g.a.as_ref(),
+                g.b.as_ref(),
+                g.c.as_ref()
+            ));
             if i % 100 == 0 {
                 gs.push(g.clone());
                 gs_invs.push(ClassGroup::inv(&g));
                 g_star = ClassGroup::op(&g, &g_star);
-                assert!(ClassGroup::validate(&g_star.a, &g_star.b, &g_star.c));
+                assert!(ClassGroup::validate(
+                    g_star.a.as_ref(),
+                    g_star.b.as_ref(),
+                    g_star.c.as_ref()
+                ));
             }
         }
 
         let elems_n_invs = gs.iter().zip(gs_invs.iter());
         for (g_elem, g_inv) in elems_n_invs {
-            assert!(ClassGroup::validate(&g_elem.a, &g_elem.b, &g_elem.c));
-            assert!(ClassGroup::validate(&g_inv.a, &g_inv.b, &g_inv.c));
+            assert!(ClassGroup::validate(
+                g_elem.a.as_ref(),
+                g_elem.b.as_ref(),
+                g_elem.c.as_ref()
+            ));
+            assert!(ClassGroup::validate(
+                g_inv.a.as_ref(),
+                g_inv.b.as_ref(),
+                g_inv.c.as_ref()
+            ));
             let mut curr_prod = ClassGroup::id();
             for elem in &gs {
                 if elem != g_elem {
                     curr_prod = ClassGroup::op(&curr_prod, &elem);
                     assert!(ClassGroup::validate(
-                        &curr_prod.a,
-                        &curr_prod.b,
-                        &curr_prod.c
+                        curr_prod.a.as_ref(),
+                        curr_prod.b.as_ref(),
+                        curr_prod.c.as_ref()
                     ));
                 }
             }

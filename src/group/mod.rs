@@ -16,10 +16,7 @@ pub use class::{ClassElem, ClassGroup};
 //pub use ristretto::{Ristretto, RistrettoElem};
 mod rsa;
 pub use rsa::{Rsa2048, Rsa2048Elem};
-use serde::{Serialize};
-
-
-
+use serde::Serialize;
 
 /// A mathematical group.
 ///

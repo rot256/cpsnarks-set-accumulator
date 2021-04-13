@@ -2,13 +2,12 @@
 use super::{ElemFrom, ElemToBytes, Group, UnknownOrderGroup};
 use crate::util::{int, TypeRep};
 use rug::{rand::MutRandState, Integer};
-use std::str::FromStr;
+use rug_binserial::Integer as BinInteger;
 use serde::{Deserialize, Serialize};
-use rug_binserial::*;
-use proofsize_derive::*;
+use std::str::FromStr;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, ProofSize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// RSA-2048 group implementation. Modulus taken from
 /// [here](https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048). **Note**: If you want to use
 /// `Rsa2048` outside the context of this crate, be advised that it treats `x` and `-x` as the same
@@ -31,9 +30,9 @@ lazy_static! {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, ProofSize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// An RSA 2048 group element, directly wrapping a GMP integer from the `rug` crate.
-pub struct Rsa2048Elem(Integer);
+pub struct Rsa2048Elem(BinInteger);
 
 impl TypeRep for Rsa2048 {
     type Rep = Integer;
@@ -45,7 +44,7 @@ impl TypeRep for Rsa2048 {
 impl Group for Rsa2048 {
     type Elem = Rsa2048Elem;
     fn op_(modulus: &Integer, a: &Rsa2048Elem, b: &Rsa2048Elem) -> Rsa2048Elem {
-        Self::elem(int(&a.0 * &b.0) % modulus)
+        Self::elem(int(a.0.as_ref() * b.0.as_ref()) % modulus)
     }
 
     fn id_(_: &Integer) -> Rsa2048Elem {
@@ -53,12 +52,12 @@ impl Group for Rsa2048 {
     }
 
     fn inv_(modulus: &Integer, x: &Rsa2048Elem) -> Rsa2048Elem {
-        Self::elem(x.0.invert_ref(modulus).unwrap())
+        Self::elem(x.0.as_ref().invert_ref(modulus).unwrap())
     }
 
     fn exp_(modulus: &Integer, x: &Rsa2048Elem, n: &Integer) -> Rsa2048Elem {
         // A side-channel resistant impl is 40% slower; we'll consider it in the future if we need to.
-        Self::elem(x.0.pow_mod_ref(n, modulus).unwrap())
+        Self::elem(x.0.as_ref().pow_mod_ref(n, modulus).unwrap())
     }
 }
 
@@ -70,9 +69,13 @@ where
         let modulus = Self::rep();
         let val = int(t) % modulus;
         if val > *HALF_MODULUS {
-            Rsa2048Elem(<(Integer, Integer)>::from((-val).div_rem_euc_ref(&modulus)).1)
+            Rsa2048Elem(
+                <(Integer, Integer)>::from((-val).div_rem_euc_ref(&modulus))
+                    .1
+                    .into(),
+            )
         } else {
-            Rsa2048Elem(val)
+            Rsa2048Elem(val.into())
         }
     }
 }
@@ -80,9 +83,10 @@ where
 impl ElemToBytes for Rsa2048 {
     fn elem_to_bytes(val: &Rsa2048Elem) -> Vec<u8> {
         let num = val.0.clone();
-        let digits = num.significant_digits::<u8>();
+        let digits = num.as_ref().significant_digits::<u8>();
         let mut bytes = vec![0u8; digits];
-        num.write_digits(&mut bytes, rug::integer::Order::MsfBe);
+        num.as_ref()
+            .write_digits(&mut bytes, rug::integer::Order::MsfBe);
         bytes
     }
 }
@@ -96,7 +100,7 @@ impl UnknownOrderGroup for Rsa2048 {
         _: &Self::Rep,
         rng: &mut R,
     ) -> Rsa2048Elem {
-        Self::elem(Integer::from(Self::order_upper_bound().clone()).random_below(rng))
+        Self::elem(Self::order_upper_bound().random_below(rng))
     }
 
     fn order_upper_bound_(_: &Integer) -> Integer {
@@ -115,12 +119,6 @@ mod tests {
     #[test]
     fn test_init() {
         let _x = &Rsa2048::rep();
-    }
-
-    #[test]
-    fn test_prf_sz() {
-      let a = Rsa2048::op(&Rsa2048::elem(2), &Rsa2048::elem(3));
-      let sz_ = a.proof_size();
     }
 
     #[test]

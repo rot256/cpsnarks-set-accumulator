@@ -1,19 +1,19 @@
 [package]
-name = "accumulator"
-version = "0.2.1"
-edition = "2018"
 authors = [
   "Pablo Aldape <pablo.aldape@gmail.com>",
   "Lucas Ege <egelucas@gmail.com>",
   "Alan Flores-Lopez <alanf94@gmail.com>",
   "Sanjay Kannan <whaatt@gmail.com>",
   "Michael Straka <mstraka100@gmail.com>",
-  "Eddie Wang <eddiew@cs.stanford.edu>"
+  "Eddie Wang <eddiew@cs.stanford.edu>",
 ]
 description = "Cryptographic accumulators in Rust."
+edition = "2018"
 keywords = ["cryptography", "crypto", "accumulator", "rsa", "vector", "commitment"]
+name = "accumulator"
 readme = "README.md"
 repository = "https://github.com/cambrian/accumulator"
+version = "0.2.1"
 
 [dependencies]
 arrayref = "0.3.5"
@@ -21,68 +21,67 @@ blake2-rfc = "0.2.18"
 curve25519-dalek = "1.1.3"
 gmp-mpfr-sys = "=1.2.2"
 lazy_static = "1.3.0"
-rug = { version = "=1.7.0", features = ["serde", "integer"] }
-serde = { version = "1.0.118", features = ["derive"] }
-rug-binserial = { git = "https://github.com/matteocam/rug-binserial" }
-proofsize_derive = "0.1.0"
+rug = {version = "=1.7.0", features = ["serde", "integer"]}
+rug-binserial = {git = "https://github.com/matteocam/rug-binserial"}
+serde = {version = "1.0.118", features = ["derive"]}
 
 [dev-dependencies]
 criterion = "0.2.11"
 rand = "0.6.5"
 
 [[bench]]
+harness = false
 name = "comparison"
 path = "benches/group/rsa.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "class"
 path = "benches/group/class.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "add"
 path = "benches/accumulator/add.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "delete"
 path = "benches/accumulator/delete.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "hashes"
 path = "benches/hash/hashes.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "primality"
 path = "benches/hash/primality.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "poe"
 path = "benches/proof/poe.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "pokcr"
 path = "benches/proof/pokcr.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "poke2"
 path = "benches/proof/poke2.rs"
-harness = false
 
 [[bench]]
+harness = false
 name = "uint"
 path = "benches/uint.rs"
-harness = false
 
 [profile.bench]
-opt-level = 3
 debug = true
+opt-level = 3
 
 # Flamegraph debug symbols.
 [profile.release]
