@@ -36,7 +36,7 @@ use serde::Serialize;
 
 // The other traits are only required here because Rust can't figure out how to do stuff with an
 // `Accumulator<G>` even though it's just a wrapped `G::Elem`. If possible we'd remove them.
-pub trait Group: Clone + Debug + Eq + Hash + TypeRep + Send + Sync {
+pub trait Group: Clone + Debug + Eq + Hash + TypeRep + Send + Sync + Serialize {
     // In theory the association `Group::Elem` is bijective, such that it makes sense to write
     // something like `Elem::Group::get()`. This would let us define `op`, `exp`, `inv`, etc. on the
     //`Elem` type and avoid using prefix notation for all of our group operations. Bijective

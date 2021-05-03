@@ -13,7 +13,7 @@ use std::str::FromStr;
 use rug_binserial::Integer as BinInteger;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 /// Class group implementation, with future optimizations available via the `--features` flag.
 /// Discriminant generated via OpenSSL.
 pub enum ClassGroup {}
