@@ -16,6 +16,7 @@ pub use class::{ClassElem, ClassGroup};
 //pub use ristretto::{Ristretto, RistrettoElem};
 mod rsa;
 pub use rsa::{Rsa2048, Rsa2048Elem};
+pub use rsa::{Rsa3072, Rsa3072Elem};
 
 use serde::Serialize;
 
