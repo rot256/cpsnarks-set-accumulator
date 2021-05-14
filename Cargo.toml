@@ -13,7 +13,7 @@ keywords = ["cryptography", "crypto", "accumulator", "rsa", "vector", "commitmen
 name = "accumulator"
 readme = "README.md"
 repository = "https://github.com/cambrian/accumulator"
-version = "0.3.0"
+version = "0.4.0"
 
 [dependencies]
 arrayref = "0.3.5"
